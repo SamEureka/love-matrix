@@ -95,7 +95,7 @@ make_image_viewer() {
 
 move_love() {
     sudo mv "$love_source" "$love_destination" || danger_will "Failed to move 'love' directory."
-    sudo chmod +x "$love_destination/love.sh" "$love_destination/toggler.sh" || danger_will "Failed to change permissions."
+    sudo chmod +x "${love_destination}love.sh" "${love_destination}toggler.sh" || danger_will "Failed to change permissions."
 }
 
 add_cron_entries() {
