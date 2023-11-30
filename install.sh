@@ -122,6 +122,23 @@ install_rpi_gpio() {
     echo "RPi.GPIO library installed successfully."
 }
 
+blacklist_snd_module() {
+    local blacklist_file="/etc/modprobe.d/blacklist-rgb-matrix.conf"
+
+    echo "Blacklisting snd_bcm2835 module..."
+
+    # Check if the file exists, create it if not
+    [ -e "$blacklist_file" ] || sudo touch "$blacklist_file"
+
+    # Use sed to delete existing line and append the new entry
+    sudo sed -i '/^blacklist snd_bcm2835/d' "$blacklist_file" || danger_will "Failed to update blacklist entry with sed."
+    echo "blacklist snd_bcm2835" | sudo tee -a "$blacklist_file" > /dev/null || danger_will "Failed to append blacklist entry."
+
+    sudo update-initramfs -u || danger_will "Failed to update initramfs."
+    echo "Initramfs updated successfully."
+}
+
+
 reboot_prompt() {
     local counter=0
 
@@ -157,4 +174,5 @@ make_image_viewer
 move_love
 add_cron_entries
 install_rpi_gpio
+blacklist_snd_module
 reboot_prompt
