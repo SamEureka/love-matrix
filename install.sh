@@ -27,3 +27,4 @@ check_and_install_you_some_bash(){
 }
 
 check_and_install_you_some_bash
+danger_will "Danger, Will Robinson! DANGER!!"
