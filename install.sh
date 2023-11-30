@@ -167,6 +167,21 @@ reboot_prompt() {
     done
 }
 
+add_isolcpu_to_cmdline() {
+    local cmdline_file="/boot/firmware/cmdline.txt"
+
+    echo "Adding isolcpu=3 to cmdline.txt..."
+
+    # Check if isolcpu=3 is already present in the first line
+    if ! grep -q "^.*isolcpu=3\b" "$cmdline_file"; then
+        # If not present, add isolcpu=3 to the end of the first line
+        sudo sed -i '1s/$/ isolcpu=3/' "$cmdline_file" || danger_will "Failed to update cmdline.txt with sed."
+        echo "isolcpu=3 added to cmdline.txt."
+    else
+        echo "isolcpu=3 is already present in cmdline.txt. Skipping addition."
+    fi
+}
+
 # Call the functions
 install_packages
 clone_repository "${repo_urls[@]}"
@@ -175,4 +190,5 @@ move_love
 add_cron_entries
 install_rpi_gpio
 blacklist_snd_module
+add_isolcpu_to_cmdline
 reboot_prompt
