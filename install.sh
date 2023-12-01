@@ -2,6 +2,7 @@
 
 ## (c) 2023 // Sam Dennon
 
+set -u
 
 # Packages to be installed
 package_list=(
@@ -27,7 +28,28 @@ led_viewer_dir="rpi-rgb-led-matrix/utils"
 love_source="love-matrix/love"
 love_destination="/opt/"
 
-set -u
+eight_dot_cell_pattern=("⣾" "⢿" "⡿" "⣷" "⣯" "⢟" "⡻" "⣽")
+braille_spinner=("${eight_dot_cell_pattern[@]}") 
+frame_duration=0.1
+
+start_spinner() {
+  (
+    spinner_index=0
+    while :; do
+      printf "\r%s " "${braille_spinner[spinner_index]}"
+      spinner_index=$(( (spinner_index + 1) % ${#braille_spinner[@]} ))
+      sleep "$frame_duration"
+    done
+  ) &
+  spinner_pid=$!
+  disown
+}
+
+stop_spinner() {
+  kill -9 "$spinner_pid"  # Stop the spinner loop
+  printf "\r%s " "⠀"  # Print U+2800 (Braille Pattern Blank) and move to the next line
+  display_message "$1"
+}
 
 danger_will() {
     printf "%s\n" "$@" >&2
@@ -57,17 +79,16 @@ root_sudo_check() {
 }
 
 install_packages() {
-    # Check for Ubuntu 23.10
-    check_ubuntu
-
-    # Check for root/sudo privileges
-    root_sudo_check
+        # Check for empty package list
+    if [ "$#" -eq 0 ]; then
+        danger_will "No packages provided for installation."
+    fi
 
     # Update package cache
     sudo apt update -qq
 
     # Install packages non-interactively and quietly
-    sudo apt install -y -qq "${package_list[@]}"
+    sudo apt install -y -qq "$@"
 }
 
 clone_repository() {
@@ -76,8 +97,15 @@ clone_repository() {
     fi
 
     for repo_url in "$@"; do
-        echo "Cloning the repository: $repo_url"
-        git clone "$repo_url" || danger_will "Failed to clone the repository: $repo_url"
+        repo_name=$(basename "$repo_url" .git)
+        repo_dir="./$repo_name"
+
+        if [ -d "$repo_dir" ]; then
+            echo "Repository $repo_name already exists. Skipping cloning."
+        else
+            echo "Cloning the repository: $repo_url"
+            git clone "$repo_url" || danger_will "Failed to clone the repository: $repo_url"
+        fi
     done
 }
 
@@ -138,6 +166,35 @@ blacklist_snd_module() {
     echo "Initramfs updated successfully."
 }
 
+add_isolcpu_to_cmdline() {
+    local cmdline_file="/boot/firmware/cmdline.txt"
+
+    echo "Adding isolcpu=3 to cmdline.txt..."
+
+    # Check if isolcpu=3 is already present in the first line
+    if ! grep -q "^.*isolcpu=3\b" "$cmdline_file"; then
+        # If not present, add isolcpu=3 to the end of the first line
+        sudo sed -i '1s/$/ isolcpu=3/' "$cmdline_file" || danger_will "Failed to update cmdline.txt with sed."
+        echo "isolcpu=3 added to cmdline.txt."
+    else
+        echo "isolcpu=3 is already present in cmdline.txt. Skipping addition."
+    fi
+}
+
+delete_cloned_repos() {
+    local repos=("$@")
+
+    if [ "${#repos[@]}" -gt 0 ]; then
+        for repo_url in "${repos[@]}"; do
+            local repo_name=$(basename "$repo_url" .git)
+            local repo_path="${repo_name}"
+            echo "Deleting repository: ${repo_path}"
+            rm -rf "${repo_path}"
+        done
+    else
+        echo "No repositories to delete."
+    fi
+}
 
 reboot_prompt() {
     local counter=0
@@ -167,23 +224,11 @@ reboot_prompt() {
     done
 }
 
-add_isolcpu_to_cmdline() {
-    local cmdline_file="/boot/firmware/cmdline.txt"
-
-    echo "Adding isolcpu=3 to cmdline.txt..."
-
-    # Check if isolcpu=3 is already present in the first line
-    if ! grep -q "^.*isolcpu=3\b" "$cmdline_file"; then
-        # If not present, add isolcpu=3 to the end of the first line
-        sudo sed -i '1s/$/ isolcpu=3/' "$cmdline_file" || danger_will "Failed to update cmdline.txt with sed."
-        echo "isolcpu=3 added to cmdline.txt."
-    else
-        echo "isolcpu=3 is already present in cmdline.txt. Skipping addition."
-    fi
-}
-
 # Call the functions
-install_packages
+start_spinner
+check_ubuntu
+root_sudo_check
+install_packages "${package_list[@]}"
 clone_repository "${repo_urls[@]}"
 make_image_viewer
 move_love
@@ -191,4 +236,6 @@ add_cron_entries
 install_rpi_gpio
 blacklist_snd_module
 add_isolcpu_to_cmdline
+delete_cloned_repos
+stop_spinner
 reboot_prompt
