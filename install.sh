@@ -322,21 +322,19 @@ delete_cloned_repos() {
 
 reboot_prompt() {
     while true; do
-        echo "This script requires a reboot. Do you want to reboot now? (y/n)"
-        read -r answer
+        read -rp "This script requires a reboot. Do you want to reboot now? (y/n) " answer
 
-        case $answer in
-            [Yy])
+        case "${answer,,}" in  # Convert answer to lowercase for case-insensitive matching
+            y)
                 echo "Rebooting..."
                 sudo reboot
                 ;;
-            [Nn])
+            n)
                 echo "No problem. You can manually reboot later if needed."
                 return
                 ;;
             *)
                 echo "Invalid response. Please enter 'y' for yes or 'n' for no."
-                continue
                 ;;
         esac
     done
