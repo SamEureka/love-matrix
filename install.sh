@@ -4,6 +4,9 @@
 
 set -u
 
+# We need to check if a function has already run this stores the breadcrumbs to keep track
+temp_file="/tmp/ran_functions.txt"
+
 # Packages to be installed
 package_list=(
   neofetch
@@ -51,6 +54,19 @@ stop_spinner() {
   display_message "$1"
 }
 
+has_function_run() {
+    local function_name="$1"
+
+    touch "$temp_file"
+
+    grep -q "$function_name" "$temp_file" 
+}
+
+mark_function_complete() {
+    local function_name="$1"
+    echo "$funcion_name" >> "$temp_file"
+}
+
 danger_will() {
     printf "%s\n" "$@" >&2
     exit 1337
@@ -79,16 +95,23 @@ root_sudo_check() {
 }
 
 install_packages() {
-        # Check for empty package list
-    if [ "$#" -eq 0 ]; then
-        danger_will "No packages provided for installation."
-    fi
+    local function_name="install_packages"
 
-    # Update package cache
-    sudo apt update -qq
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
+    else
+            # Check for empty package list
+        if [ "$#" -eq 0 ]; then
+            danger_will "No packages provided for installation."
+        fi
 
-    # Install packages non-interactively and quietly
-    sudo apt install -y -qq "$@"
+        # Update package cache
+        sudo apt update -qq
+
+        # Install packages non-interactively and quietly
+        sudo apt install -y -qq "$@"
+
+        mark_function_complete "$function_name"
 }
 
 clone_repository() {
@@ -110,20 +133,34 @@ clone_repository() {
 }
 
 make_image_viewer() {
-    pushd "$led_viewer_dir" || danger_will "Failed to change directory to $led_viewer_dir"
-    
-    # Build led-image-viewer
-    make led-image-viewer || danger_will "Failed to build led-image-viewer."
+    local function_name="make_image_viewer"
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
+    else
+        pushd "$led_viewer_dir" || danger_will "Failed to change directory to $led_viewer_dir"
+        
+        # Build led-image-viewer
+        make led-image-viewer || danger_will "Failed to build led-image-viewer."
 
-    # Move the built binary to /usr/bin/
-    sudo mv led-image-viewer /usr/bin/ || danger_will "Failed to move led-image-viewer to /usr/bin/"
+        # Move the built binary to /usr/bin/
+        sudo mv led-image-viewer /usr/bin/ || danger_will "Failed to move led-image-viewer to /usr/bin/"
 
-    popd || danger_will "Failed to return to the original directory."
+        popd || danger_will "Failed to return to the original directory."
+
+        mark_function_complete "$function_name"
 }
 
 move_love() {
-    sudo mv "$love_source" "$love_destination" || danger_will "Failed to move 'love' directory."
-    sudo chmod +x "${love_destination}love.sh" "${love_destination}toggler.sh" || danger_will "Failed to change permissions."
+    local function_name="move_love"
+
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
+    else
+        sudo mv "$love_source" "$love_destination" || danger_will "Failed to move 'love' directory."
+        
+        sudo chmod +x "${love_destination}/love/love.sh" "${love_destination}/love/toggler.sh" || danger_will "Failed to change permissions."
+
+        mark_function_complete "$function_name"
 }
 
 add_cron_entries() {
@@ -132,6 +169,8 @@ add_cron_entries() {
         # Add entries to root crontab using sed
         sudo sed -i '$a@reboot cd /opt/love && /opt/love/love.sh' <(sudo crontab -l) || danger_will "Failed to add crontab entry for love.sh"
         sudo sed -i '$a@reboot /opt/love/toggler.sh' <(sudo crontab -l) || danger_will "Failed to add crontab entry for toggler.sh"
+        sudo sed -i '$a0 18 * * * /usr/bin/screen -S love -X quit' <(sudo crontab -l) || danger_will "Failed to add cron entry"
+        sudo sed -i '$a0 5 * * * cd /opt/love /opt/love/love.sh' <(sudo crontab -l) || danger_will "Failed to add cron entry"
         echo "Crontab entries added successfully."
     else
         echo "Crontab entries are already present. Skipping addition."
@@ -139,31 +178,45 @@ add_cron_entries() {
 }
 
 install_rpi_gpio() {
-    local external_managed_file="/usr/lib/python3.11/EXTERNALLY_MANAGED"
+    local function_name="install_rpi_gpio"
 
-    echo "Removing EXTERNALLY_MANAGED file if exists..."
-    sudo rm -f "$external_managed_file" || danger_will "Failed to remove EXTERNALLY_MANAGED file."
-    echo "EXTERNALLY_MANAGED file removed successfully."
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
+    else
+        local external_managed_file="/usr/lib/python3.11/EXTERNALLY_MANAGED"
 
-    echo "Installing RPi.GPIO library..."
-    sudo pip install RPi.GPIO || danger_will "Failed to install RPi.GPIO library."
-    echo "RPi.GPIO library installed successfully."
+        echo "Removing EXTERNALLY_MANAGED file if exists..."
+        sudo rm -f "$external_managed_file" || danger_will "Failed to remove EXTERNALLY_MANAGED file."
+        echo "EXTERNALLY_MANAGED file removed successfully."
+
+        echo "Installing RPi.GPIO library..."
+        sudo pip install RPi.GPIO || danger_will "Failed to install RPi.GPIO library."
+        echo "RPi.GPIO library installed successfully."
+
+        mark_function_complete "$function_name"
 }
 
 blacklist_snd_module() {
-    local blacklist_file="/etc/modprobe.d/blacklist-rgb-matrix.conf"
+    local function_name="blacklist_snd_module"
 
-    echo "Blacklisting snd_bcm2835 module..."
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
+    else
+        local blacklist_file="/etc/modprobe.d/blacklist-rgb-matrix.conf"
 
-    # Check if the file exists, create it if not
-    [ -e "$blacklist_file" ] || sudo touch "$blacklist_file"
+        echo "Blacklisting snd_bcm2835 module..."
 
-    # Use sed to delete existing line and append the new entry
-    sudo sed -i '/^blacklist snd_bcm2835/d' "$blacklist_file" || danger_will "Failed to update blacklist entry with sed."
-    echo "blacklist snd_bcm2835" | sudo tee -a "$blacklist_file" > /dev/null || danger_will "Failed to append blacklist entry."
+        # Check if the file exists, create it if not
+        [ -e "$blacklist_file" ] || sudo touch "$blacklist_file"
 
-    sudo update-initramfs -u || danger_will "Failed to update initramfs."
-    echo "Initramfs updated successfully."
+        # Use sed to delete existing line and append the new entry
+        sudo sed -i '/^blacklist snd_bcm2835/d' "$blacklist_file" || danger_will "Failed to update blacklist entry with sed."
+        echo "blacklist snd_bcm2835" | sudo tee -a "$blacklist_file" > /dev/null || danger_will "Failed to append blacklist entry."
+
+        sudo update-initramfs -u || danger_will "Failed to update initramfs."
+        echo "Initramfs updated successfully."
+
+        mark_function_complete "$function_name"
 }
 
 add_isolcpu_to_cmdline() {
@@ -188,11 +241,14 @@ delete_cloned_repos() {
         for repo_url in "${repos[@]}"; do
             local repo_name=$(basename "$repo_url" .git)
             local repo_path="${repo_name}"
-            echo "Deleting repository: ${repo_path}"
-            rm -rf "${repo_path}"
+            
+            if [[ -d "${repo_path}" ]]; then
+                echo "Deleting repository: ${repo_path}"
+                rm -rf "${repo_path}"
+            else
+                "Repository does not exist: ${repo_path}"
+            fi
         done
-    else
-        echo "No repositories to delete."
     fi
 }
 
