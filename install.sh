@@ -118,21 +118,29 @@ install_packages() {
 }
 
 clone_repository() {
-    if [ "$#" -eq 0 ]; then
-        danger_will "No repository URLs provided."
-    fi
+    local function_name="clone_repository"
 
-    for repo_url in "$@"; do
-        repo_name=$(basename "$repo_url" .git)
-        repo_dir="./$repo_name"
-
-        if [ -d "$repo_dir" ]; then
-            echo "Repository $repo_name already exists. Skipping cloning."
-        else
-            echo "Cloning the repository: $repo_url"
-            git clone "$repo_url" || danger_will "Failed to clone the repository: $repo_url"
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
+    else   
+        if [ "$#" -eq 0 ]; then
+            danger_will "No repository URLs provided."
         fi
-    done
+
+        for repo_url in "$@"; do
+            repo_name=$(basename "$repo_url" .git)
+            repo_dir="./$repo_name"
+
+            if [ -d "$repo_dir" ]; then
+                echo "Repository $repo_name already exists. Skipping cloning."
+            else
+                echo "Cloning the repository: $repo_url"
+                git clone "$repo_url" || danger_will "Failed to clone the repository: $repo_url"
+            fi
+        done
+
+        mark_function_complete "$function_name"
+    fi
 }
 
 make_image_viewer() {
@@ -171,16 +179,43 @@ move_love() {
 add_cron_entries() {
     # Ensure the crontab entries are not already present
     if ! (sudo crontab -l | grep -q "/opt/love/love.sh" && sudo crontab -l | grep -q "/opt/love/toggler.sh"); then
-        # Add entries to root crontab using sed
-        sudo sed -i '$a@reboot cd /opt/love && /opt/love/love.sh' <(sudo crontab -l) || danger_will "Failed to add crontab entry for love.sh"
-        sudo sed -i '$a@reboot /opt/love/toggler.sh' <(sudo crontab -l) || danger_will "Failed to add crontab entry for toggler.sh"
-        sudo sed -i '$a0 18 * * * /usr/bin/screen -S love -X quit' <(sudo crontab -l) || danger_will "Failed to add cron entry"
-        sudo sed -i '$a0 5 * * * cd /opt/love /opt/love/love.sh' <(sudo crontab -l) || danger_will "Failed to add cron entry"
+        # Create a temporary file to hold the new crontab entries
+        temp_crontab=$(mktemp)
+
+        # Add entries to the temporary file using echo
+        {
+            echo "@reboot cd /opt/love && /opt/love/love.sh"
+            echo "@reboot /opt/love/toggler.sh"
+            echo "0 18 * * * /usr/bin/screen -S love -X quit"
+            echo "0 5 * * * cd /opt/love /opt/love/love.sh"
+         } >> "$temp_crontab"
+
+        # Replace the existing crontab with the updated one
+        sudo crontab "$temp_crontab" || danger_will "Failed to update crontab"
+
+        # Remove the temporary file
+        rm "$temp_crontab"
+
         echo "Crontab entries added successfully."
     else
         echo "Crontab entries are already present. Skipping addition."
     fi
 }
+
+
+# add_cron_entries() {
+#     # Ensure the crontab entries are not already present
+#     if ! (sudo crontab -l | grep -q "/opt/love/love.sh" && sudo crontab -l | grep -q "/opt/love/toggler.sh"); then
+#         # Add entries to root crontab using sed
+#         sudo sed -i '$a@reboot cd /opt/love && /opt/love/love.sh' <(sudo crontab -l) || danger_will "Failed to add crontab entry for love.sh"
+#         sudo sed -i '$a@reboot /opt/love/toggler.sh' <(sudo crontab -l) || danger_will "Failed to add crontab entry for toggler.sh"
+#         sudo sed -i '$a0 18 * * * /usr/bin/screen -S love -X quit' <(sudo crontab -l) || danger_will "Failed to add cron entry"
+#         sudo sed -i '$a0 5 * * * cd /opt/love /opt/love/love.sh' <(sudo crontab -l) || danger_will "Failed to add cron entry"
+#         echo "Crontab entries added successfully."
+#     else
+#         echo "Crontab entries are already present. Skipping addition."
+#     fi
+# }
 
 install_rpi_gpio() {
     local function_name="install_rpi_gpio"
