@@ -336,6 +336,7 @@ reboot_prompt() {
                 ((counter++))
                 if [ "$counter" -lt 2 ]; then
                     echo "No problem. You can manually reboot later if needed."
+                    continue
                 else
                     echo "You've declined to reboot multiple times. Rebooting now..."
                     sudo reboot
