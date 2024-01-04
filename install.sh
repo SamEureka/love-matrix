@@ -332,7 +332,7 @@ reboot_prompt() {
                 ;;
             [Nn])
                 echo "No problem. You can manually reboot later if needed."
-                break
+                return
                 ;;
             *)
                 echo "Invalid response. Please enter 'y' for yes or 'n' for no."
