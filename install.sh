@@ -223,11 +223,15 @@ install_rpi_gpio() {
     if has_function_run "$function_name"; then
         echo "$function_name has already run."
     else
-        local external_managed_file="/usr/lib/python3.11/EXTERNALLY_MANAGED"
+        local external_managed_file="/usr/lib/python3.11/EXTERNALLY-MANAGED"
 
         echo "Removing EXTERNALLY_MANAGED file if exists..."
-        sudo rm -f "$external_managed_file" || danger_will "Failed to remove EXTERNALLY_MANAGED file."
-        echo "EXTERNALLY_MANAGED file removed successfully."
+        if [ -e "$external_managed_file" ]; then
+            sudo rm -f "$external_managed_file" || danger_will "Failed to remove EXTERNALLY_MANAGED file."
+            echo "EXTERNALLY_MANAGED file removed successfully."
+        else
+            echo "EXTERNALLY_MANAGED file does not exist."
+        fi
 
         echo "Installing RPi.GPIO library..."
         sudo pip install RPi.GPIO || danger_will "Failed to install RPi.GPIO library."
@@ -236,6 +240,27 @@ install_rpi_gpio() {
         mark_function_complete "$function_name"
     fi
 }
+
+
+# install_rpi_gpio() {
+#     local function_name="install_rpi_gpio"
+
+#     if has_function_run "$function_name"; then
+#         echo "$function_name has already run."
+#     else
+#         local external_managed_file="/usr/lib/python3.11/EXTERNALLY-MANAGED"
+
+#         echo "Removing EXTERNALLY_MANAGED file if exists..."
+#         sudo rm -f "$external_managed_file" || danger_will "Failed to remove EXTERNALLY_MANAGED file."
+#         echo "EXTERNALLY_MANAGED file removed successfully."
+
+#         echo "Installing RPi.GPIO library..."
+#         sudo pip install RPi.GPIO || danger_will "Failed to install RPi.GPIO library."
+#         echo "RPi.GPIO library installed successfully."
+
+#         mark_function_complete "$function_name"
+#     fi
+# }
 
 blacklist_snd_module() {
     local function_name="blacklist_snd_module"
