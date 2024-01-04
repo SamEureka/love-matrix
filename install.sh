@@ -321,8 +321,6 @@ delete_cloned_repos() {
 }
 
 reboot_prompt() {
-    local counter=0
-
     while true; do
         echo "This script requires a reboot. Do you want to reboot now? (y/n)"
         read -r answer
@@ -333,14 +331,8 @@ reboot_prompt() {
                 sudo reboot
                 ;;
             [Nn])
-                ((counter++))
-                if [ "$counter" -lt 2 ]; then
-                    echo "No problem. You can manually reboot later if needed."
-                    continue
-                else
-                    echo "You've declined to reboot multiple times. Rebooting now..."
-                    sudo reboot
-                fi
+                echo "No problem. You can manually reboot later if needed."
+                break
                 ;;
             *)
                 echo "Invalid response. Please enter 'y' for yes or 'n' for no."
