@@ -336,6 +336,7 @@ reboot_prompt() {
                 ;;
             *)
                 echo "Invalid response. Please enter 'y' for yes or 'n' for no."
+                continue
                 ;;
         esac
     done
