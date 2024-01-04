@@ -64,6 +64,7 @@ has_function_run() {
 
 mark_function_complete() {
     local function_name="$1"
+
     echo "$funcion_name" >> "$temp_file"
 }
 
@@ -112,6 +113,7 @@ install_packages() {
         sudo apt install -y -qq "$@"
 
         mark_function_complete "$function_name"
+    fi
 }
 
 clone_repository() {
@@ -148,6 +150,7 @@ make_image_viewer() {
         popd || danger_will "Failed to return to the original directory."
 
         mark_function_complete "$function_name"
+    fi
 }
 
 move_love() {
@@ -161,6 +164,7 @@ move_love() {
         sudo chmod +x "${love_destination}/love/love.sh" "${love_destination}/love/toggler.sh" || danger_will "Failed to change permissions."
 
         mark_function_complete "$function_name"
+    fi
 }
 
 add_cron_entries() {
@@ -194,6 +198,7 @@ install_rpi_gpio() {
         echo "RPi.GPIO library installed successfully."
 
         mark_function_complete "$function_name"
+    fi
 }
 
 blacklist_snd_module() {
@@ -217,6 +222,7 @@ blacklist_snd_module() {
         echo "Initramfs updated successfully."
 
         mark_function_complete "$function_name"
+    fi
 }
 
 add_isolcpu_to_cmdline() {
