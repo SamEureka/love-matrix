@@ -8,7 +8,7 @@ import os
 
 def is_shorted(pin):
     # Read the state of the pin multiple times and check if consistently LOW
-    for _ in range(20):  # Check 10 times
+    for _ in range(20):  # Check 20 times
         if GPIO.input(pin) != GPIO.LOW:
             return False
         time.sleep(0.1)  # Wait for a short duration between checks

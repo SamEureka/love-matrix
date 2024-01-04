@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# For Andrea on our 3rd Anniversary! I love you, Babe!
+# For Andrea, I love you, Babe!
 # (c) 2023 // Sam Dennon
 
 # Set the directory containing the images
