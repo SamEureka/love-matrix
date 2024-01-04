@@ -49,7 +49,7 @@ start_spinner() {
 }
 
 stop_spinner() {
-  kill -9 "$spinner_pid"  # Stop the spinner loop
+  kill -9 "$1"  # Stop the spinner loop
   printf "\r%s " "⠀"  # Print U+2800 (Braille Pattern Blank) and move to the next line
   display_message "$1"
 }
@@ -65,16 +65,17 @@ has_function_run() {
 mark_function_complete() {
     local function_name="$1"
 
-    echo "$funcion_name" >> "$temp_file"
+    echo "$function_name" >> "$temp_file"
 }
 
 danger_will() {
     printf "%s\n" "$@" >&2
-    exit 1337
+    exit 1
 }
 
 check_ubuntu() {
     if [ -e /etc/os-release ]; then
+        # shellcheck disable=SC1091
         source /etc/os-release
         if [ "$ID" != "ubuntu" ]; then
             danger_will "This script is intended to run on Ubuntu Linux only."
@@ -245,7 +246,8 @@ delete_cloned_repos() {
 
     if [ "${#repos[@]}" -gt 0 ]; then
         for repo_url in "${repos[@]}"; do
-            local repo_name=$(basename "$repo_url" .git)
+            local repo_name
+            repo_name=$(basename "$repo_url" .git)
             local repo_path="${repo_name}"
             
             if [[ -d "${repo_path}" ]]; then
@@ -298,6 +300,6 @@ add_cron_entries
 install_rpi_gpio
 blacklist_snd_module
 add_isolcpu_to_cmdline
-delete_cloned_repos
-stop_spinner
+delete_cloned_repos "${repo_urls[@]}"
+stop_spinner "$spinner_pid"
 reboot_prompt
