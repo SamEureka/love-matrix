@@ -13,6 +13,7 @@ screen_session="love"
 led_image_viewer="/usr/bin/led-image-viewer"
 
 # Set LED display parameters
+led_gpio_mapping="adafruit-hat-pwm"
 led_cols=64 # int is number of pixels vertically
 led_rows=64 # int is number of pixels horizontally
 led_slowdown_gpio=4 # int 1-4 (Higher number RPIs needing higher number 
@@ -44,7 +45,7 @@ if [ -n "$image_list" ]; then
     # create a new screen session that we can stuff into
     /usr/bin/screen  -S "$screen_session" -dm
     # Execute led-image-viewer with the list of image files
-    /usr/bin/screen -S "$screen_session" -X stuff "$led_image_viewer --led-cols=$led_cols --led-rows=$led_rows --led-slowdown-gpio=$led_slowdown_gpio --led-brightness=$led_brightness $viewer_flags $image_list$(printf '\r')"
+    /usr/bin/screen -S "$screen_session" -X stuff "$led_image_viewer --led-gpio-mapping=$led_gpio_mapping --led-cols=$led_cols --led-rows=$led_rows --led-slowdown-gpio=$led_slowdown_gpio --led-brightness=$led_brightness $viewer_flags $image_list$(printf '\r')"
 else
     echo "No image files found in $image_directory"
 fi
