@@ -31,13 +31,13 @@ led_viewer_dir="rpi-rgb-led-matrix/utils"
 love_source="love-matrix/love"
 love_destination="/opt/"
 
-eight_dot_cell_pattern=("⣾" "⢿" "⡿" "⣷" "⣯" "⢟" "⡻" "⣽")
-braille_spinner=("${eight_dot_cell_pattern[@]}") 
-frame_duration=0.1
-
 start_spinner() {
+  local eight_dot_cell_pattern=("⣾" "⢿" "⡿" "⣷" "⣯" "⢟" "⡻" "⣽")
+  local braille_spinner=("${eight_dot_cell_pattern[@]}")
+  local frame_duration=0.1
+
+  local spinner_index=0
   (
-    spinner_index=0
     while :; do
       printf "\r%s " "${braille_spinner[spinner_index]}"
       spinner_index=$(( (spinner_index + 1) % ${#braille_spinner[@]} ))
@@ -202,21 +202,6 @@ add_cron_entries() {
     fi
 }
 
-
-# add_cron_entries() {
-#     # Ensure the crontab entries are not already present
-#     if ! (sudo crontab -l | grep -q "/opt/love/love.sh" && sudo crontab -l | grep -q "/opt/love/toggler.sh"); then
-#         # Add entries to root crontab using sed
-#         sudo sed -i '$a@reboot cd /opt/love && /opt/love/love.sh' <(sudo crontab -l) || danger_will "Failed to add crontab entry for love.sh"
-#         sudo sed -i '$a@reboot /opt/love/toggler.sh' <(sudo crontab -l) || danger_will "Failed to add crontab entry for toggler.sh"
-#         sudo sed -i '$a0 18 * * * /usr/bin/screen -S love -X quit' <(sudo crontab -l) || danger_will "Failed to add cron entry"
-#         sudo sed -i '$a0 5 * * * cd /opt/love /opt/love/love.sh' <(sudo crontab -l) || danger_will "Failed to add cron entry"
-#         echo "Crontab entries added successfully."
-#     else
-#         echo "Crontab entries are already present. Skipping addition."
-#     fi
-# }
-
 install_rpi_gpio() {
     local function_name="install_rpi_gpio"
 
@@ -240,27 +225,6 @@ install_rpi_gpio() {
         mark_function_complete "$function_name"
     fi
 }
-
-
-# install_rpi_gpio() {
-#     local function_name="install_rpi_gpio"
-
-#     if has_function_run "$function_name"; then
-#         echo "$function_name has already run."
-#     else
-#         local external_managed_file="/usr/lib/python3.11/EXTERNALLY-MANAGED"
-
-#         echo "Removing EXTERNALLY_MANAGED file if exists..."
-#         sudo rm -f "$external_managed_file" || danger_will "Failed to remove EXTERNALLY_MANAGED file."
-#         echo "EXTERNALLY_MANAGED file removed successfully."
-
-#         echo "Installing RPi.GPIO library..."
-#         sudo pip install RPi.GPIO || danger_will "Failed to install RPi.GPIO library."
-#         echo "RPi.GPIO library installed successfully."
-
-#         mark_function_complete "$function_name"
-#     fi
-# }
 
 blacklist_snd_module() {
     local function_name="blacklist_snd_module"
@@ -320,6 +284,58 @@ delete_cloned_repos() {
     fi
 }
 
+config_neofetch(){
+    local neofetch_config_path="/root/.config/neofetch"
+    
+    # Create path if it doesn't exist
+    if [[ ! -d "$neofetch_config_path" ]]; then
+        mkdir -p "$neofetch_config_path"
+    fi
+
+    # Remove the config if it exists
+    if [ -e "$neofetch_config_path/config.conf" ]; then
+        rm "$neofetch_config_path/config.conf"
+    fi
+
+tee "$neofetch_config_path/config.conf" > /dev/null << END_OF_LINE
+    print_info() {
+        info title
+        info underline
+
+        info "OS" distro
+        info "Host" model
+        info "Kernel" kernel
+        info "Uptime" uptime
+        info "Packages" packages
+        info "Shell" shell
+        info "CPU" cpu
+        info "Memory" memory
+    }
+    ascii_distro="Raspbian_small"
+END_OF_LINE
+}
+
+cleanup_motd() {
+    local motd_path="/etc/update-motd.d"
+    local wrapper_path="/usr/share/landscape/landscape-sysinfo.wrapper"
+    local files_to_remove=(
+        "91-contract-ua-esm-status"
+        "95-hwe-eol"
+        "10-help-text"
+        "50-motd-news"
+    )
+
+    for file in "${files_to_remove[@]}"; do
+        rm "$motd_path/$file" 2>/dev/null
+    done
+
+tee "$wrapper_path" > /dev/null << END_OF_LINE
+    #!/usr/bin/env bash
+    neofetch
+END_OF_LINE
+
+}
+
 reboot_prompt() {
     read -pr "You need to reboot now. (y to reboot, n to do it later) " CONT
     if test "$CONT" = "y"; then
@@ -344,5 +360,7 @@ install_rpi_gpio
 blacklist_snd_module
 add_isolcpus_to_cmdline
 delete_cloned_repos "${repo_urls[@]}"
+config_neofetch
+cleanup_motd
 stop_spinner "$spinner_pid"
 reboot_prompt
