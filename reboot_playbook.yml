@@ -1,8 +1,0 @@
----
-- hosts: "{{ target_hosts }}"
-  become: yes
-
-  tasks:
-    - name: Reboot the system
-      reboot:
-        reboot_timeout: 300
