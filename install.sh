@@ -362,6 +362,10 @@ END_OF_LINE
 
 }
 
+clear_console() {
+    echo -e "\033[H\033[2J"
+}
+
 reboot_prompt() {
     while true; do
         read -rsp "You need to reboot now. (y to reboot, n to do it later): " answer
@@ -413,4 +417,5 @@ delete_cloned_repos "${repo_urls[@]}"
 config_neofetch
 cleanup_motd
 stop_spinner "$spinner_pid"
+clear_console
 reboot_prompt
