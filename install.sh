@@ -369,12 +369,20 @@ clear_console() {
 reboot_prompt() {
     while true; do
         read -rsp "You need to reboot now. (y to reboot, n to do it later): " answer
-        answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
+        # shellcheck disable=SC2269
+        answer="$answer"
+
+        if [[ -z "$answer" ]]; then
+            echo "Input stream closed prematurely."
+            break
+        fi
+
+        answer="${answer,,}"
 
         case "$answer" in
             y)
                 echo "See ya!"
-                sleep 2  # Delay before reboot
+                sleep 2
                 reboot
                 break
                 ;;
