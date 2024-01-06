@@ -16,3 +16,5 @@ ansible-playbook -e "target_hosts=hostname1,hostname2" reboot_playlist.yml
 ```bash
 curl -sSL https://raw.githubusercontent.com/SamEureka/love-matrix/main/install.sh | sudo bash
 ```
+
+__NOTE:__ Be sure to short pin 25 to ground after installing. The code expects pin 25 to be shorted and will reboot until it is.

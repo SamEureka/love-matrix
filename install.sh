@@ -108,10 +108,10 @@ install_packages() {
         fi
 
         # Update package cache
-        sudo apt update -qq
+        apt update -qq
 
         # Install packages non-interactively and quietly
-        sudo apt install -y -qq "$@"
+        apt install -y -qq "$@"
 
         mark_function_complete "$function_name"
     fi
@@ -154,7 +154,7 @@ make_image_viewer() {
         make led-image-viewer || danger_will "Failed to build led-image-viewer."
 
         # Move the built binary to /usr/bin/
-        sudo mv led-image-viewer /usr/bin/ || danger_will "Failed to move led-image-viewer to /usr/bin/"
+        mv led-image-viewer /usr/bin/ || danger_will "Failed to move led-image-viewer to /usr/bin/"
 
         popd || danger_will "Failed to return to the original directory."
 
@@ -168,9 +168,9 @@ move_love() {
     if has_function_run "$function_name"; then
         echo "$function_name has already run."
     else
-        sudo mv -f "$love_source" "$love_destination" || danger_will "Failed to move 'love' directory."
+        mv -f u "$love_source" "$love_destination" || danger_will "Failed to move 'love' directory."
         
-        sudo chmod +x "${love_destination}/love/love.sh" "${love_destination}/love/toggler.sh" || danger_will "Failed to change permissions."
+        chmod +x "${love_destination}/love/love.sh" "${love_destination}/love/toggler.sh" || danger_will "Failed to change permissions."
 
         mark_function_complete "$function_name"
     fi
@@ -178,7 +178,7 @@ move_love() {
 
 add_cron_entries() {
     # Ensure the crontab entries are not already present
-    if ! (sudo crontab -l | grep -q "/opt/love/love.sh" && sudo crontab -l | grep -q "/opt/love/toggler.sh"); then
+    if ! (crontab -l | grep -q "/opt/love/love.sh" && sudo crontab -l | grep -q "/opt/love/toggler.sh"); then
         # Create a temporary file to hold the new crontab entries
         temp_crontab=$(mktemp)
 
@@ -191,7 +191,7 @@ add_cron_entries() {
          } >> "$temp_crontab"
 
         # Replace the existing crontab with the updated one
-        sudo crontab "$temp_crontab" || danger_will "Failed to update crontab"
+        crontab "$temp_crontab" || danger_will "Failed to update crontab"
 
         # Remove the temporary file
         rm "$temp_crontab"
@@ -212,14 +212,14 @@ install_rpi_gpio() {
 
         echo "Removing EXTERNALLY_MANAGED file if exists..."
         if [ -e "$external_managed_file" ]; then
-            sudo rm -f "$external_managed_file" || danger_will "Failed to remove EXTERNALLY_MANAGED file."
+            rm -f "$external_managed_file" || danger_will "Failed to remove EXTERNALLY_MANAGED file."
             echo "EXTERNALLY_MANAGED file removed successfully."
         else
             echo "EXTERNALLY_MANAGED file does not exist."
         fi
 
         echo "Installing RPi.GPIO library..."
-        sudo pip install RPi.GPIO || danger_will "Failed to install RPi.GPIO library."
+        pip install RPi.GPIO || danger_will "Failed to install RPi.GPIO library."
         echo "RPi.GPIO library installed successfully."
 
         mark_function_complete "$function_name"
@@ -240,10 +240,10 @@ blacklist_snd_module() {
         [ -e "$blacklist_file" ] || sudo touch "$blacklist_file"
 
         # Use sed to delete existing line and append the new entry
-        sudo sed -i '/^blacklist snd_bcm2835/d' "$blacklist_file" || danger_will "Failed to update blacklist entry with sed."
+        sed -i '/^blacklist snd_bcm2835/d' "$blacklist_file" || danger_will "Failed to update blacklist entry with sed."
         echo "blacklist snd_bcm2835" | sudo tee -a "$blacklist_file" > /dev/null || danger_will "Failed to append blacklist entry."
 
-        sudo update-initramfs -u || danger_will "Failed to update initramfs."
+        update-initramfs -u || danger_will "Failed to update initramfs."
         echo "Initramfs updated successfully."
 
         mark_function_complete "$function_name"
@@ -258,7 +258,7 @@ add_isolcpus_to_cmdline() {
     # Check if isolcpu=3 is already present in the first line
     if ! grep -q "^.*isolcpus=3\b" "$cmdline_file"; then
         # If not present, add isolcpu=3 to the end of the first line
-        sudo sed -i '1s/$/ isolcpus=3/' "$cmdline_file" || danger_will "Failed to update cmdline.txt with sed."
+        sed -i '1s/$/ isolcpus=3/' "$cmdline_file" || danger_will "Failed to update cmdline.txt with sed."
         echo "isolcpus=3 added to cmdline.txt."
     else
         echo "isolcpus=3 is already present in cmdline.txt. Skipping addition."
@@ -340,7 +340,7 @@ reboot_prompt() {
     read -pr "You need to reboot now. (y to reboot, n to do it later) " CONT
     if test "$CONT" = "y"; then
         echo "See ya!"
-        sudo reboot
+        reboot
     else
         echo "Cool, we can reboot later. The doing of things is complete!"
         return 0
