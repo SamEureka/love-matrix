@@ -51,7 +51,6 @@ start_spinner() {
 stop_spinner() {
   kill -9 "$1"  # Stop the spinner loop
   printf "\r%s " "⠀"  # Print U+2800 (Braille Pattern Blank) and move to the next line
-  display_message "$1"
 }
 
 has_function_run() {
