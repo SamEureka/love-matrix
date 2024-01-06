@@ -168,8 +168,11 @@ move_love() {
     if has_function_run "$function_name"; then
         echo "$function_name has already run."
     else
+        if [[ -d "$love_destination/love" ]]; then
+            rm -rf "$love_destination/love"
+        fi
+
         mv -fu "$love_source" "$love_destination" || danger_will "Failed to move 'love' directory."
-        
         chmod +x "${love_destination}/love/love.sh" "${love_destination}/love/toggler.sh" || danger_will "Failed to change permissions."
 
         mark_function_complete "$function_name"
@@ -177,28 +180,36 @@ move_love() {
 }
 
 add_cron_entries() {
-    # Ensure the crontab entries are not already present
-    if ! (crontab -l | grep -q "/opt/love/love.sh" && sudo crontab -l | grep -q "/opt/love/toggler.sh"); then
-        # Create a temporary file to hold the new crontab entries
-        temp_crontab=$(mktemp)
+    local function_name="add_cron_entries"
 
-        # Add entries to the temporary file using echo
-        {
-            echo "@reboot cd /opt/love && /opt/love/love.sh"
-            echo "@reboot /opt/love/toggler.sh"
-            echo "0 18 * * * /usr/bin/screen -S love -X quit"
-            echo "0 5 * * * cd /opt/love /opt/love/love.sh"
-         } >> "$temp_crontab"
-
-        # Replace the existing crontab with the updated one
-        crontab "$temp_crontab" || danger_will "Failed to update crontab"
-
-        # Remove the temporary file
-        rm "$temp_crontab"
-
-        echo "Crontab entries added successfully."
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
     else
-        echo "Crontab entries are already present. Skipping addition."
+        # Ensure the crontab entries are not already present
+        if ! (crontab -l | grep -q "/opt/love/love.sh" && sudo crontab -l | grep -q "/opt/love/toggler.sh"); then
+            # Create a temporary file to hold the new crontab entries
+            temp_crontab=$(mktemp)
+
+            # Add entries to the temporary file using echo
+            {
+                echo "@reboot cd /opt/love && /opt/love/love.sh"
+                echo "@reboot /opt/love/toggler.sh"
+                echo "0 18 * * * /usr/bin/screen -S love -X quit"
+                echo "0 5 * * * cd /opt/love /opt/love/love.sh"
+            } >> "$temp_crontab"
+
+            # Replace the existing crontab with the updated one
+            crontab "$temp_crontab" || danger_will "Failed to update crontab"
+
+            # Remove the temporary file
+            rm "$temp_crontab"
+
+            echo "Crontab entries added successfully."
+        else
+            echo "Crontab entries are already present. Skipping addition."
+        fi
+
+        mark_function_complete "$function_name"
     fi
 }
 
@@ -251,36 +262,52 @@ blacklist_snd_module() {
 }
 
 add_isolcpus_to_cmdline() {
-    local cmdline_file="/boot/firmware/cmdline.txt"
+    local function_name="add_isolcpus_to_cmdline"
 
-    echo "Adding isolcpus=3 to cmdline.txt..."
-
-    # Check if isolcpu=3 is already present in the first line
-    if ! grep -q "^.*isolcpus=3\b" "$cmdline_file"; then
-        # If not present, add isolcpu=3 to the end of the first line
-        sed -i '1s/$/ isolcpus=3/' "$cmdline_file" || danger_will "Failed to update cmdline.txt with sed."
-        echo "isolcpus=3 added to cmdline.txt."
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
     else
-        echo "isolcpus=3 is already present in cmdline.txt. Skipping addition."
+        local cmdline_file="/boot/firmware/cmdline.txt"
+
+        echo "Adding isolcpus=3 to cmdline.txt..."
+
+        # Check if isolcpu=3 is already present in the first line
+        if ! grep -q "^.*isolcpus=3\b" "$cmdline_file"; then
+            # If not present, add isolcpus=3 to the end of the first line
+            sed -i '1s/$/ isolcpus=3/' "$cmdline_file" || danger_will "Failed to update cmdline.txt with sed."
+            echo "isolcpus=3 added to cmdline.txt."
+        else
+            echo "isolcpus=3 is already present in cmdline.txt. Skipping addition."
+        fi
+
+        mark_function_complete "$function_name"
     fi
 }
 
 delete_cloned_repos() {
-    local repos=("$@")
+    local function_name="delete_cloned_repos"
 
-    if [ "${#repos[@]}" -gt 0 ]; then
-        for repo_url in "${repos[@]}"; do
-            local repo_name
-            repo_name=$(basename "$repo_url" .git)
-            local repo_path="${repo_name}"
-            
-            if [[ -d "${repo_path}" ]]; then
-                echo "Deleting repository: ${repo_path}"
-                rm -rf "${repo_path}"
-            else
-                "Repository does not exist: ${repo_path}"
-            fi
-        done
+    if has_function_run "$function_name"; then
+        echo "$function_name has already run."
+    else    
+        local repos=("$@")
+
+        if [ "${#repos[@]}" -gt 0 ]; then
+            for repo_url in "${repos[@]}"; do
+                local repo_name
+                repo_name=$(basename "$repo_url" .git)
+                local repo_path="${repo_name}"
+                
+                if [[ -d "${repo_path}" ]]; then
+                    echo "Deleting repository: ${repo_path}"
+                    rm -rf "${repo_path}"
+                else
+                    "Repository does not exist: ${repo_path}"
+                fi
+            done
+        fi
+
+        mark_function_complete "$function_name"
     fi
 }
 
@@ -331,14 +358,15 @@ cleanup_motd() {
 
 tee "$wrapper_path" > /dev/null << END_OF_LINE
     #!/usr/bin/env bash
-    neofetch
+    neofetch --config /root/.config/neofetch/config.conf
 END_OF_LINE
 
 }
 
 reboot_prompt() {
-    read -pr "You need to reboot now. (y to reboot, n to do it later) " CONT
-    if test "$CONT" = "y"; then
+    # shellcheck disable=SC2162
+    read -p "You need to reboot now. (y to reboot, n to do it later) " answer
+    if [[ "$answer" = "y" ]]; then
         echo "See ya!"
         reboot
     else
