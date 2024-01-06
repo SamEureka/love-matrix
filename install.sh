@@ -363,16 +363,39 @@ END_OF_LINE
 }
 
 reboot_prompt() {
-    # shellcheck disable=SC2162
-    read -p "You need to reboot now. (y to reboot, n to do it later) " answer
-    if [[ "$answer" = "y" ]]; then
-        echo "See ya!"
-        reboot
-    else
-        echo "Cool, we can reboot later. The doing of things is complete!"
-        return 0
-    fi
+    while true; do
+        read -rsp "You need to reboot now. (y to reboot, n to do it later): " answer
+        answer=$(echo "$answer" | tr '[:upper:]' '[:lower:]')
+
+        case "$answer" in
+            y)
+                echo "See ya!"
+                sleep 2  # Delay before reboot
+                reboot
+                break
+                ;;
+            n)
+                echo "Cool, we can reboot later. The doing of things is complete!"
+                return 0
+                ;;
+            *)
+                echo "Invalid input. Please enter 'y' or 'n'."
+                ;;
+        esac
+    done
 }
+
+# reboot_prompt() {
+#     # shellcheck disable=SC2162
+#     read -p "You need to reboot now. (y to reboot, n to do it later) " answer
+#     if [[ "$answer" = "y" ]]; then
+#         echo "See ya!"
+#         reboot
+#     else
+#         echo "Cool, we can reboot later. The doing of things is complete!"
+#         return 0
+#     fi
+# }
 
 # Call the functions
 start_spinner
