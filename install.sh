@@ -168,7 +168,7 @@ move_love() {
     if has_function_run "$function_name"; then
         echo "$function_name has already run."
     else
-        mv -f u "$love_source" "$love_destination" || danger_will "Failed to move 'love' directory."
+        mv -fu "$love_source" "$love_destination" || danger_will "Failed to move 'love' directory."
         
         chmod +x "${love_destination}/love/love.sh" "${love_destination}/love/toggler.sh" || danger_will "Failed to change permissions."
 
