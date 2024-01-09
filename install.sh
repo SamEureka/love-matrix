@@ -97,7 +97,7 @@ root_sudo_check() {
 
 install_packages() {
     local function_name="install_packages"
-
+    export DEBIAN_FRONTEND=noninteractive
     if has_function_run "$function_name"; then
         echo "$function_name has already run."
     else
